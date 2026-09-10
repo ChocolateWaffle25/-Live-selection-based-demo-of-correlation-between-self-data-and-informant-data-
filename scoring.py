@@ -20,6 +20,9 @@ arbitrary single value line.
 
 import numpy as np
 from scipy.stats import pearsonr
+import matplotlib
+matplotlib.use("Agg")  # non-interactive backend; Streamlit sets its own at runtime
+import matplotlib.pyplot as plt
 
 TRAITS = ["Openness", "Conscientiousness", "Extraversion", "Agreeableness", "Neuroticism"]
 
@@ -183,3 +186,64 @@ def compute_score(self_words, informant_words):
         score = round(((r + 1) / 2) * 9 + 1, 1)
 
     return score, r, overlap, v1, v2
+
+
+# A person picks exactly 10 words, so in the extreme case all 10 land on one
+# trait with the same sign -- a single trait score can range from -10 to +10.
+MAX_TRAIT_SCORE = 10
+
+
+def _radius(v, lo=-MAX_TRAIT_SCORE, hi=MAX_TRAIT_SCORE, r_lo=0.2, r_hi=2.2):
+    """
+    Map a signed trait score onto a radius that never collapses opposite-sign
+    scores onto the same ring.
+
+    A naive radar chart plots radius = abs(value) (or clips negatives to 0),
+    since polar radius is conventionally non-negative. That throws away the
+    sign: a trait scored +10 and one scored -10 both land on the same ring,
+    so a pair of PERFECTLY INVERSE profiles (r = -1, the worst possible
+    agreement) can render as a single overlapping shape -- the exact
+    opposite of what the chart is supposed to show.
+
+    Shifting the whole [-MAX_TRAIT_SCORE, +MAX_TRAIT_SCORE] range onto
+    [r_lo, r_hi] instead keeps both sign and magnitude visible: -10 sits
+    near the center, 0 sits mid-ring, +10 sits on the outer edge.
+    """
+    return r_lo + (v - lo) / (hi - lo) * (r_hi - r_lo)
+
+
+def plot_radar(v1, v2, score=None, r=None, title=None):
+    """
+    Sign-preserving radar chart comparing the self (v1) and informant (v2)
+    Big Five profiles returned by compute_score().
+
+    Pass `score` / `r` straight from compute_score() to auto-build a title
+    (handles the word-overlap fallback case where r is None), or pass your
+    own `title` string directly. Returns a matplotlib Figure -- use
+    fig.savefig(...) standalone, or st.pyplot(fig) inside the Streamlit app.
+    """
+    if title is None:
+        if score is not None and r is not None:
+            title = f"Agreement score: {score}/10 (r={r:.2f})"
+        elif score is not None:
+            title = f"Agreement score: {score}/10 (based on word overlap)"
+        else:
+            title = "S-data vs I-data profile"
+
+    angles = np.linspace(0, 2 * np.pi, len(TRAITS), endpoint=False).tolist()
+    angles += angles[:1]
+
+    r1 = [_radius(v) for v in v1] + [_radius(v1[0])]
+    r2 = [_radius(v) for v in v2] + [_radius(v2[0])]
+
+    fig, ax = plt.subplots(subplot_kw=dict(polar=True), figsize=(6, 6))
+    ax.plot(angles, r1, "o-", label="Self (S-data)")
+    ax.fill(angles, r1, alpha=0.15)
+    ax.plot(angles, r2, "o-", label="Informant (I-data)")
+    ax.fill(angles, r2, alpha=0.15)
+    ax.set_xticks(angles[:-1])
+    ax.set_xticklabels(TRAITS)
+    ax.set_yticklabels([])  # shifted radii aren't meaningful as tick labels
+    ax.set_title(title)
+    ax.legend(loc="upper right", bbox_to_anchor=(1.3, 1.1))
+    return fig
