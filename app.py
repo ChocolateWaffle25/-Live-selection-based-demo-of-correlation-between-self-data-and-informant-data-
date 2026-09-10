@@ -69,7 +69,7 @@ def radar_chart(v1, v2):
 
     line1, = ax.plot(angles_plot, v1_plot, linewidth=2, color="#4C72B0", label="Self (S-data)")
     ax.fill(angles_plot, v1_plot, alpha=0.15, color="#4C72B0")
-    line2, = ax.plot(angles_plot, v2_plot, linewidth=2, color="#DD8452", label="Friend's view (I-data)")
+    line2, = ax.plot(angles_plot, v2_plot, linewidth=2, color="#DD8452", label="Informant (I-data)")
     ax.fill(angles_plot, v2_plot, alpha=0.15, color="#DD8452")
 
     ax.set_xticks(angles)
