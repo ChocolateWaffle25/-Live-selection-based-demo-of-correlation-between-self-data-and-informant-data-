@@ -239,7 +239,7 @@ def plot_radar(v1, v2, score=None, r=None, title=None):
     fig, ax = plt.subplots(subplot_kw=dict(polar=True), figsize=(6, 6))
     ax.plot(angles, r1, "o-", label="Self (S-data)")
     ax.fill(angles, r1, alpha=0.15)
-    ax.plot(angles, r2, "o-", label="(I-data)")
+    ax.plot(angles, r2, "o-", label="Informant (I-data)")
     ax.fill(angles, r2, alpha=0.15)
     ax.set_xticks(angles[:-1])
     ax.set_xticklabels(TRAITS)
